@@ -1,0 +1,124 @@
+services:
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - prowlarr_config:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+    networks:
+      - media_server
+
+  sonarr:
+    container_name: sonarr
+    image: linuxserver/sonarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${MEDIA_DATA}/tv:/tv
+      - ${DOWNLOADED_DATA}:/downloads
+      - sonarr_config:/config
+    ports:
+      - 8989:8989
+    networks:
+      - media_server
+    restart: unless-stopped
+
+  radarr:
+    container_name: radarr
+    image: linuxserver/radarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${MEDIA_DATA}/movies:/movies
+      - ${DOWNLOADED_DATA}:/downloads
+      - radarr_config:/config
+    ports:
+      - 7878:7878
+    networks:
+      - media_server
+    restart: unless-stopped
+
+  jellyfin:
+    container_name: jellyfin
+    image: linuxserver/jellyfin
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${MEDIA_DATA}/tv:/data/tvshows
+      - ${MEDIA_DATA}/movies:/data/movies
+      - jellyfin_config:/config
+    ports:
+      - 8096:8096
+      - 8920:8920
+    networks:
+      - media_server
+    restart: unless-stopped
+
+  qbittorrentvpn:
+    container_name: qbittorrentvpn
+    image: dyonr/qbittorrentvpn
+    privileged: true
+    environment:
+      - VPN_ENABLED=yes
+      - VPN_USERNAME=${VPN_USERNAME}
+      - VPN_PASSWORD=${VPN_PASSWORD}
+      - LAN_NETWORK=${LAN_NETWORK}
+      - HEALTHCHECK_INTERVAL=300
+      - HEALTHCHECK_SILENT=1
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - qbittorrentvpn_config:/config
+      - ${DOWNLOADED_DATA}:/downloads
+    ports:
+      - 8080:8080
+      - 8999:8999
+      - 6881:6881/udp
+    networks:
+      - media_server
+    restart: unless-stopped
+
+  jellyseerr:
+    container_name: jellyseerr
+    image: fallenbagel/jellyseerr:latest
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - jellyseerr_config:/app/config
+    ports:
+      - 5055:5055
+    networks:
+      - media_server
+    restart: unless-stopped
+
+# Volumes for persistent storage
+volumes:
+  sonarr_config:
+  radarr_config:
+  jellyfin_config:
+  qbittorrentvpn_config:
+  jellyseerr_config:
+  prowlarr_config:
+
+    # Custom network definition
+networks:
+  media_server:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${CUSTOM_NETWORK_SUBNET}
